@@ -2573,7 +2573,9 @@ if st.session_state.generated:
     )
 
     download_text = build_download_text(type_key, selected_field, topics)
-    col_download, col_reset = st.columns(2)
+# 1. 버튼을 놓을 자리를 2개에서 3개로 늘립니다.
+    col_download, col_regen, col_reset = st.columns(3)
+
     with col_download:
         st.download_button(
             "📥 결과를 TXT로 다운로드",
@@ -2582,11 +2584,14 @@ if st.session_state.generated:
             mime="text/plain",
             use_container_width=True,
         )
+
+    with col_regen:
+        # 2. 재생성 버튼 추가: 누르면 페이지가 새로고침되면서 다시 랜덤으로 뽑습니다.
+        if st.button("🔄 주제 재생성", use_container_width=True):
+            st.rerun()
+
     with col_reset:
-        if st.button("🔄 초기화", use_container_width=True):
+        # 3. 기존의 초기화 버튼
+        if st.button("🗑️ 전체 초기화", use_container_width=True):
             st.session_state.generated = False
-            st.session_state.generated_topics = []
-            st.session_state.generated_type_key = ""
-            st.session_state.generated_field = ""
-            st.session_state.generated_source = ""
             st.rerun()
