@@ -9,7 +9,7 @@ import streamlit.components.v1 as components
 
 
 st.set_page_config(
-    page_title="💡 AI 토론&토의 주제 생성기",
+    page_title="AI 토론&토의 주제 생성기",
     page_icon="💡",
     layout="centered",
 )
@@ -370,7 +370,7 @@ def expand_topics_for_category(category_name: str, type_key: str, base_topics: l
         if type_key == "토론":
             candidate = (
                 f"{category_name} 분야에서 {subject} 중심의 {target} {action}을 "
-                f"{condition} 방식으로 추진해야 한다 ({lens} 관점)"
+                f"{condition} 방식으로 추진해야 한다"
             )
         else:
             candidate = (
