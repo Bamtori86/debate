@@ -1,7 +1,12 @@
 import random
 import time
+import json
+import os
+from pathlib import Path
 
 import streamlit as st
+import streamlit.components.v1 as components
+
 
 st.set_page_config(
     page_title="💡 AI 토론&토의 주제 생성기",
@@ -14,28 +19,20 @@ st.markdown(
     <style>
     @import url('https://fonts.googleapis.com/css2?family=SUIT:wght@400;500;600;700;800&display=swap');
 
-    html, body, [class*="css"] {
+    .stApp {
+        background-color: #F0F4FF;
         font-family: 'SUIT', 'Pretendard', 'Noto Sans KR', sans-serif;
     }
-    .stApp {
-        background: linear-gradient(135deg, #EEF2FF 0%, #F0F9FF 50%, #F5F3FF 100%);
-        min-height: 100vh;
-    }
-
-    /* ── 헤더 타이틀 */
     h1 {
         color: #1E3A8A !important;
         font-weight: 800 !important;
-        letter-spacing: -0.5px;
-        font-size: 2rem !important;
+        letter-spacing: -0.3px;
     }
-
-    /* ── 사이드바 */
     [data-testid="stSidebar"] {
         min-width: 370px !important;
         max-width: 370px !important;
-        background: linear-gradient(180deg, #EEF4FF 0%, #F7FAFF 100%) !important;
-        border-right: 1.5px solid #C7D7FF !important;
+        background: linear-gradient(180deg, #EEF4FF 0%, #F7FAFF 100%);
+        border-right: 1px solid #DCE8FF;
     }
     [data-testid="stSidebar"] * {
         font-size: 1.02rem !important;
@@ -44,141 +41,80 @@ st.markdown(
     [data-testid="stSidebar"] .stSelectbox,
     [data-testid="stSidebar"] .stTextInput,
     [data-testid="stSidebar"] .stSlider {
-        margin-bottom: 0.4rem;
+        margin-bottom: 0.5rem;
     }
-
-    /* ── 버튼 (생성) */
+    [data-testid="stSidebar"] .stSlider [role="slider"] {
+        transform: scale(1.08);
+    }
     .stButton > button {
-        background: linear-gradient(135deg, #2563EB, #7C3AED) !important;
+        background-color: #2563EB !important;
         color: white !important;
         border: none !important;
-        border-radius: 10px !important;
-        font-weight: 700 !important;
-        font-size: 1rem !important;
-        padding: 0.65rem 1rem !important;
-        transition: all 0.2s ease;
-        box-shadow: 0 4px 14px rgba(37,99,235,0.3) !important;
+        border-radius: 8px !important;
+        font-weight: 600 !important;
+        padding: 0.6rem 1rem !important;
     }
     .stButton > button:hover {
-        background: linear-gradient(135deg, #1D4ED8, #6D28D9) !important;
-        box-shadow: 0 6px 20px rgba(37,99,235,0.45) !important;
-        transform: translateY(-1px);
-    }
-
-    /* ── 다운로드 버튼 */
-    .stDownloadButton > button {
-        background: linear-gradient(135deg, #059669, #0284C7) !important;
+        background-color: #1D4ED8 !important;
         color: white !important;
-        border: none !important;
-        border-radius: 10px !important;
-        font-weight: 700 !important;
-        padding: 0.65rem 1rem !important;
-        box-shadow: 0 4px 14px rgba(5,150,105,0.25) !important;
     }
-    .stDownloadButton > button:hover {
-        opacity: 0.9 !important;
-    }
-
-    /* ── 주제 카드 */
     .topic-card {
         background: white;
-        border-left: 5px solid;
-        border-image: linear-gradient(180deg, #2563EB, #7C3AED) 1;
-        border-radius: 12px;
-        padding: 1rem 1.4rem;
-        margin-bottom: 0.85rem;
-        box-shadow: 0 3px 12px rgba(37,99,235,0.10);
-        transition: box-shadow 0.2s;
-        position: relative;
-    }
-    .topic-card:hover {
-        box-shadow: 0 6px 22px rgba(37,99,235,0.18);
+        border-left: 4px solid #2563EB;
+        border-radius: 10px;
+        padding: 1rem 1.5rem;
+        margin-bottom: 0.75rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     }
     .topic-header {
         display: flex;
         gap: 0.6rem;
         align-items: center;
-        margin-bottom: 0.4rem;
+        margin-bottom: 0.35rem;
     }
     .topic-number {
         color: #1E3A8A;
-        font-weight: 800;
-        font-size: 1.05rem;
+        font-weight: 700;
     }
     .topic-badge {
         display: inline-block;
-        font-size: 0.76rem;
+        font-size: 0.78rem;
         font-weight: 700;
-        color: white;
-        background: linear-gradient(135deg, #2563EB, #7C3AED);
-        padding: 0.18rem 0.65rem;
+        color: #2563EB;
+        background-color: #E0EAFF;
+        padding: 0.15rem 0.55rem;
         border-radius: 999px;
-        letter-spacing: 0.3px;
     }
     .topic-text {
         color: #0F172A;
-        font-size: 1.02rem;
-        line-height: 1.6;
-        font-weight: 500;
+        font-size: 1rem;
+        line-height: 1.5;
     }
-    .copy-btn {
-        margin-top: 0.6rem;
-        display: inline-flex;
+    .summary-wrap {
+        display: flex;
+        gap: 0.55rem;
         align-items: center;
-        gap: 0.35rem;
-        background: #F0F4FF;
-        color: #2563EB;
-        border: 1.5px solid #C7D7FF;
-        border-radius: 7px;
-        padding: 0.28rem 0.75rem;
-        font-size: 0.82rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.18s;
-        font-family: 'SUIT', sans-serif;
+        flex-wrap: wrap;
+        margin: 0.25rem 0 0.9rem 0;
     }
-    .copy-btn:hover {
-        background: #2563EB;
+    .summary-label {
+        color: #334155;
+        font-weight: 700;
+    }
+    .summary-chip {
+        display: inline-block;
+        padding: 0.24rem 0.66rem;
+        border-radius: 999px;
+        font-size: 0.85rem;
+        font-weight: 700;
         color: white;
-        border-color: #2563EB;
+        background: linear-gradient(135deg, #1D4ED8, #7C3AED);
     }
-    .copy-btn.copied {
-        background: #D1FAE5;
-        color: #065F46;
-        border-color: #6EE7B7;
-    }
-
-    /* ── 푸터 */
-    .aion-footer {
-        margin-top: 3rem;
-        padding: 1.2rem 1rem;
-        text-align: center;
-        border-top: 1.5px solid #DCE8FF;
-        color: #64748B;
-        font-size: 0.82rem;
-        line-height: 1.7;
-    }
-    .aion-footer strong {
-        color: #1E3A8A;
+    .summary-sep {
+        color: #94A3B8;
         font-weight: 700;
     }
     </style>
-
-    <script>
-    function copyTopic(text, btnId) {
-        navigator.clipboard.writeText(text).then(function() {
-            var btn = document.getElementById(btnId);
-            if (btn) {
-                btn.classList.add('copied');
-                btn.innerHTML = '✅ 복사됨';
-                setTimeout(function() {
-                    btn.classList.remove('copied');
-                    btn.innerHTML = '📋 복사';
-                }, 1800);
-            }
-        });
-    }
-    </script>
     """,
     unsafe_allow_html=True,
 )
@@ -389,6 +325,7 @@ TOPIC_DB = {
             "청소년 수면 시간을 보장하기 위해 등교 시간을 늦춰야 한다",
             "학교 내 에너지 음료 판매를 금지해야 한다",
             "정신건강 교육은 정규 수업으로 의무화해야 한다",
+            "학교 시험에 계산기 사용을 허용해야 한다",
             "학생 건강 관리를 위해 학교에서 운동 앱 사용을 장려해야 한다",
             "게임 시간 제한은 청소년 건강을 위해 필요하다",
         ],
@@ -410,41 +347,230 @@ def get_type_key(selected_type_label: str) -> str:
     return "토론" if "토론" in selected_type_label else "토의"
 
 
-def gather_mixed_topics(type_key: str) -> list:
-    mixed = []
-    for category in TOPIC_DB.values():
-        mixed.extend(category[type_key])
-    return mixed
+TARGET_TOPICS_PER_TYPE = 200
+CACHE_PATH = Path(__file__).with_name("expanded_topic_db.json")
+DEFAULT_GEMINI_MODEL = "gemini-1.5-flash"
 
 
-def generate_topics(type_key: str, field: str, keyword: str, count: int) -> list:
-    if field == "기타":
-        pool = gather_mixed_topics(type_key)
-        random.shuffle(pool)
-        if keyword.strip():
-            keyword_norm = keyword.strip()
-            preferred = [t for t in pool if keyword_norm in t]
-            others = [t for t in pool if keyword_norm not in t]
-            merged = preferred + others
+def expand_topics_for_category(category_name: str, type_key: str, base_topics: list) -> list:
+    pool = list(dict.fromkeys(base_topics))
+    rng = random.Random(f"{category_name}-{type_key}")
+    subjects = ["학생", "학급", "학교", "지역사회", "가정", "교사", "학생회", "동아리"]
+    actions = ["도입", "확대", "축소", "의무화", "선택제", "평가 강화", "운영 개선", "규칙 개편"]
+    lenses = ["공정성", "효율성", "안전성", "참여도", "지속가능성", "학습효과", "실행가능성", "책임성"]
+    targets = ["수업", "프로젝트", "캠페인", "평가", "활동", "운영 방식", "정책", "협업 체계"]
+    conditions = ["전면", "부분", "단계적", "시범", "학년별", "학급별", "학생 자치 중심", "학교-가정 연계"]
+
+    while len(pool) < TARGET_TOPICS_PER_TYPE:
+        subject = rng.choice(subjects)
+        action = rng.choice(actions)
+        lens = rng.choice(lenses)
+        target = rng.choice(targets)
+        condition = rng.choice(conditions)
+        if type_key == "토론":
+            candidate = (
+                f"{category_name} 분야에서 {subject} 중심의 {target} {action}을 "
+                f"{condition} 방식으로 추진해야 한다 ({lens} 관점)"
+            )
         else:
-            merged = pool
-        if len(merged) >= count:
-            return random.sample(merged, count)
-        return merged
-    pool = TOPIC_DB[field][type_key]
+            candidate = (
+                f"{category_name} 분야에서 {subject}가 참여하는 {target}을(를) "
+                f"{condition}으로 운영하며 {lens}을 높이려면 어떤 실천이 필요할까?"
+            )
+        pool.append(candidate)
+
+    return list(dict.fromkeys(pool))[:TARGET_TOPICS_PER_TYPE]
+
+
+def get_gemini_api_key() -> str:
+    if "GEMINI_API_KEY" in st.secrets:
+        return str(st.secrets["GEMINI_API_KEY"]).strip()
+    return os.getenv("GEMINI_API_KEY", "").strip()
+
+
+def is_gemini_enabled() -> bool:
+    return bool(get_gemini_api_key())
+
+
+def generate_topics_with_gemini(category_name: str, type_key: str, base_topics: list) -> list | None:
+    api_key = get_gemini_api_key()
+    if not api_key:
+        return None
+    try:
+        import google.generativeai as genai
+    except ImportError:
+        return None
+
+    genai.configure(api_key=api_key)
+    model = genai.GenerativeModel(DEFAULT_GEMINI_MODEL)
+
+    seed_text = "\n".join(f"- {topic}" for topic in base_topics)
+    prompt = f"""
+당신은 초중고 수업 주제 설계 전문가다.
+아래 조건에 맞는 한국어 주제를 정확히 220개 생성하라.
+
+[조건]
+- 분야: {category_name}
+- 유형: {type_key}
+- 대상: 학교 수업(학급 토론/토의)
+- 문장 길이: 20~55자
+- 중복/유사 문장 금지
+- 번호, 따옴표, 설명 없이 한 줄에 한 문장
+- 유형이 토론이면 "~해야 한다" 등의 주장형 중심
+- 유형이 토의면 "~어떻게 할까?" 등의 논의형 중심
+
+[기존 예시 일부]
+{seed_text}
+"""
+    try:
+        response = model.generate_content(prompt)
+        raw_text = (response.text or "").strip()
+        if not raw_text:
+            return None
+        candidates = [line.strip(" -\t") for line in raw_text.splitlines() if line.strip()]
+        merged = list(dict.fromkeys(base_topics + candidates))
+        return merged[:TARGET_TOPICS_PER_TYPE]
+    except Exception:
+        return None
+
+
+def generate_misc_topics_with_gemini(type_key: str, count: int) -> list | None:
+    api_key = get_gemini_api_key()
+    if not api_key:
+        return None
+    try:
+        import google.generativeai as genai
+    except ImportError:
+        return None
+
+    genai.configure(api_key=api_key)
+    model = genai.GenerativeModel(DEFAULT_GEMINI_MODEL)
+
+    prompt = f"""
+당신은 초중고 수업용 주제를 설계하는 교육 전문가다.
+여러 분야를 섞어 한국어 {type_key} 주제를 정확히 {count}개 생성하라.
+
+[조건]
+- 학교 수업용으로 적절해야 한다
+- 주제가 서로 충분히 달라야 한다
+- 번호, 따옴표, 해설 없이 한 줄에 한 문장만 출력한다
+- 유형이 토론이면 주장형, 유형이 토의면 논의형으로 작성한다
+- 학급, 학교, 환경, 사회, 동물, 과학, 인공지능, 경제, 문화예술, 건강 분야를 균형 있게 반영한다
+"""
+    try:
+        response = model.generate_content(prompt)
+        raw_text = (response.text or "").strip()
+        if not raw_text:
+            return None
+        topics = [line.strip(" -\t") for line in raw_text.splitlines() if line.strip()]
+        return list(dict.fromkeys(topics))[:count]
+    except Exception:
+        return None
+
+
+def build_large_topic_db(topic_db: dict) -> tuple[dict, dict]:
+    expanded = {}
+    source_meta = {}
+    for category_name, category_data in topic_db.items():
+        debate = generate_topics_with_gemini(category_name, "토론", category_data["토론"])
+        discussion = generate_topics_with_gemini(category_name, "토의", category_data["토의"])
+        debate_source = "gemini" if debate and len(debate) >= TARGET_TOPICS_PER_TYPE else "local"
+        discussion_source = "gemini" if discussion and len(discussion) >= TARGET_TOPICS_PER_TYPE else "local"
+        expanded[category_name] = {
+            "토론": (
+                debate
+                if debate and len(debate) >= TARGET_TOPICS_PER_TYPE
+                else expand_topics_for_category(category_name, "토론", category_data["토론"])
+            ),
+            "토의": (
+                discussion
+                if discussion and len(discussion) >= TARGET_TOPICS_PER_TYPE
+                else expand_topics_for_category(category_name, "토의", category_data["토의"])
+            ),
+        }
+        source_meta[category_name] = {
+            "토론": debate_source,
+            "토의": discussion_source,
+        }
+    return expanded, source_meta
+
+
+def load_or_create_expanded_db(force_rebuild: bool = False) -> tuple[dict, dict]:
+    if CACHE_PATH.exists() and not force_rebuild:
+        try:
+            with CACHE_PATH.open("r", encoding="utf-8") as f:
+                cached = json.load(f)
+            if isinstance(cached, dict) and "topics" in cached and "meta" in cached:
+                cached_topics = cached["topics"]
+                cached_meta = cached["meta"]
+                if is_gemini_enabled():
+                    sources = [
+                        source
+                        for category_meta in cached_meta.values()
+                        for source in category_meta.values()
+                    ]
+                    if sources and all(source == "local" for source in sources):
+                        raise ValueError("Rebuild cache with Gemini")
+                return cached_topics, cached_meta
+            if isinstance(cached, dict):
+                legacy_meta = {
+                    category_name: {"토론": "local", "토의": "local"}
+                    for category_name in cached.keys()
+                }
+                if is_gemini_enabled():
+                    raise ValueError("Rebuild legacy cache with Gemini")
+                return cached, legacy_meta
+        except Exception:
+            pass
+    expanded, source_meta = build_large_topic_db(TOPIC_DB)
+    try:
+        with CACHE_PATH.open("w", encoding="utf-8") as f:
+            json.dump(
+                {"topics": expanded, "meta": source_meta},
+                f,
+                ensure_ascii=False,
+                indent=2,
+            )
+    except Exception:
+        pass
+    return expanded, source_meta
+
+
+if "force_rebuild_db" not in st.session_state:
+    st.session_state.force_rebuild_db = False
+if "last_build_message" not in st.session_state:
+    st.session_state.last_build_message = ""
+
+EXPANDED_TOPIC_DB, TOPIC_SOURCE_META = load_or_create_expanded_db(
+    force_rebuild=st.session_state.force_rebuild_db
+)
+if st.session_state.force_rebuild_db:
+    st.session_state.last_build_message = "주제 DB를 강제로 재생성했습니다."
+    st.session_state.force_rebuild_db = False
+
+
+def generate_topics(type_key: str, field: str, count: int) -> tuple[list, str]:
+    if field == "기타":
+        gemini_topics = generate_misc_topics_with_gemini(type_key, count)
+        if gemini_topics and len(gemini_topics) >= count:
+            return gemini_topics, "gemini"
+        mixed = []
+        for category_data in EXPANDED_TOPIC_DB.values():
+            mixed.extend(category_data[type_key])
+        return random.sample(mixed, count), "local"
+
+    pool = EXPANDED_TOPIC_DB[field][type_key]
     if len(pool) >= count:
-        return random.sample(pool, count)
-    return pool
+        return random.sample(pool, count), TOPIC_SOURCE_META.get(field, {}).get(type_key, "local")
+    return pool, TOPIC_SOURCE_META.get(field, {}).get(type_key, "local")
 
 
-def build_download_text(type_key: str, field: str, keyword: str, topics: list) -> str:
+def build_download_text(type_key: str, field: str, topics: list) -> str:
     lines = [
         "💡 AI 토론&토의 주제 생성기 결과",
         f"- 유형: {type_key}",
         f"- 분야: {field}",
     ]
-    if field == "기타":
-        lines.append(f"- 키워드: {keyword.strip() if keyword.strip() else '(미입력)'}")
     lines.append("")
     lines.append("[생성된 주제]")
     lines.extend([f"{idx}. {topic}" for idx, topic in enumerate(topics, start=1)])
@@ -453,93 +579,192 @@ def build_download_text(type_key: str, field: str, keyword: str, topics: list) -
     return "\n".join(lines)
 
 
-# ── 헤더
 st.title("💡 AI 토론&토의 주제 생성기")
 st.caption("학급 토론·토의 수업을 위한 주제를 AI가 추천해드립니다.")
 
-# ── 사이드바
+if "generated" not in st.session_state:
+    st.session_state.generated = False
+if "generated_topics" not in st.session_state:
+    st.session_state.generated_topics = []
+if "generated_type_key" not in st.session_state:
+    st.session_state.generated_type_key = ""
+if "generated_field" not in st.session_state:
+    st.session_state.generated_field = ""
+if "generated_source" not in st.session_state:
+    st.session_state.generated_source = ""
+
 with st.sidebar:
-    st.markdown("### ⚙️ 설정")
-    st.divider()
+    st.subheader("설정")
     selected_type = st.radio(
-        "📌 유형 선택",
+        "유형 선택",
         ["🗣️ 토론", "💬 토의"],
     )
     selected_field = st.selectbox(
-        "📂 분야 선택",
-        ["학급","학교","환경","사회","동물","과학","인공지능","경제","문화예술","건강","기타"],
+        "분야 선택",
+        [
+            "학급",
+            "학교",
+            "환경",
+            "사회",
+            "동물",
+            "과학",
+            "인공지능",
+            "경제",
+            "문화예술",
+            "건강",
+        ] + (["기타"] if is_gemini_enabled() else []),
     )
-    keyword_input = ""
-    if selected_field == "기타":
-        keyword_input = st.text_input(
-            "🔍 키워드 입력",
-            placeholder="예: 급식, 독서, 스마트폰...",
-        )
-    generate_count = st.slider("🎯 주제 생성 개수", 1, 10, 3)
-    st.divider()
+    generate_count = st.slider("주제 생성 개수", 1, 5, 3)
     generate_button = st.button("✨ 주제 생성하기", use_container_width=True)
+    if st.button("♻️ 주제 DB 강제 재생성", use_container_width=True):
+        st.session_state.force_rebuild_db = True
+        st.rerun()
+    if is_gemini_enabled():
+        st.caption("기타 분야는 Gemini 기반으로 생성됩니다.")
+    else:
+        st.caption("Gemini API가 연결되면 기타 분야를 사용할 수 있습니다.")
+    if st.session_state.last_build_message:
+        st.caption(st.session_state.last_build_message)
 
-# ── 메인
 if not generate_button:
-    st.info("👈 왼쪽 사이드바에서 유형/분야를 선택하고 `✨ 주제 생성하기` 버튼을 눌러보세요.")
-else:
+    if not st.session_state.generated:
+        st.info(
+            "왼쪽 사이드바에서 유형/분야를 선택하고 `✨ 주제 생성하기` 버튼을 눌러보세요."
+        )
+if generate_button:
     with st.spinner("주제를 생성하는 중입니다..."):
         time.sleep(1.2)
 
     type_key = get_type_key(selected_type)
-    topics = generate_topics(type_key, selected_field, keyword_input, generate_count)
+    topics, source_label = generate_topics(type_key, selected_field, generate_count)
+    st.session_state.generated = True
+    st.session_state.generated_topics = topics
+    st.session_state.generated_type_key = type_key
+    st.session_state.generated_field = selected_field
+    st.session_state.generated_source = source_label
 
+if st.session_state.generated:
+    type_key = st.session_state.generated_type_key
+    selected_field = st.session_state.generated_field
+    topics = st.session_state.generated_topics
+    source_label = st.session_state.generated_source
     st.success("✅ 주제 생성 완료!")
-    summary_text = (
-        f"**선택 요약:** `{type_key}` 유형 · `{selected_field}` 분야"
-        + (
-            f" · 키워드 `{keyword_input.strip()}`"
-            if selected_field == "기타" and keyword_input.strip()
-            else ""
-        )
+    st.markdown(
+        f"""
+        <div class="summary-wrap">
+            <span class="summary-label">선택 요약</span>
+            <span class="summary-chip">유형: {type_key}</span>
+            <span class="summary-sep">|</span>
+            <span class="summary-chip">분야: {selected_field}</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
-    st.markdown(summary_text)
-    st.markdown("")
+    source_text = "Gemini AI 생성" if source_label == "gemini" else "로컬 DB 생성"
+    st.caption(f"생성 방식: {source_text}")
 
     badge_label = "토론" if type_key == "토론" else "토의"
+    cards_html_parts = []
     for idx, topic in enumerate(topics, start=1):
-        btn_id = f"copy_btn_{idx}"
-        safe_topic = topic.replace("'", "\\'")
-        st.markdown(
+        safe_topic = json.dumps(topic, ensure_ascii=False)
+        cards_html_parts.append(
             f"""
             <div class="topic-card">
                 <div class="topic-header">
                     <span class="topic-number">#{idx}</span>
                     <span class="topic-badge">{badge_label}</span>
                 </div>
-                <div class="topic-text">{topic}</div>
-                <button class="copy-btn" id="{btn_id}"
-                    onclick="copyTopic('{safe_topic}', '{btn_id}')">
-                    📋 복사
-                </button>
+                <div style="display:flex; justify-content:space-between; gap:0.8rem; align-items:flex-start;">
+                    <div class="topic-text" style="flex:1;">{topic}</div>
+                    <button class="copy-btn" onclick='copyTopic({safe_topic}, this)'>📋 복사</button>
+                </div>
             </div>
-            """,
-            unsafe_allow_html=True,
+            """
         )
-
-    st.markdown("---")
-    download_text = build_download_text(type_key, selected_field, keyword_input, topics)
-    st.download_button(
-        "📥 전체 결과를 TXT로 다운로드",
-        data=download_text,
-        file_name="ai_topic_results.txt",
-        mime="text/plain",
-        use_container_width=True,
+    components.html(
+        f"""
+        <style>
+            .topic-card {{
+                background: white;
+                border-left: 4px solid #2563EB;
+                border-radius: 10px;
+                padding: 1rem 1.5rem;
+                margin-bottom: 0.75rem;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            }}
+            .topic-header {{
+                display: flex;
+                gap: 0.6rem;
+                align-items: center;
+                margin-bottom: 0.35rem;
+            }}
+            .topic-number {{
+                color: #1E3A8A;
+                font-weight: 700;
+            }}
+            .topic-badge {{
+                display: inline-block;
+                font-size: 0.78rem;
+                font-weight: 700;
+                color: #2563EB;
+                background-color: #E0EAFF;
+                padding: 0.15rem 0.55rem;
+                border-radius: 999px;
+            }}
+            .topic-text {{
+                color: #0F172A;
+                font-size: 1rem;
+                line-height: 1.5;
+            }}
+            .copy-btn {{
+                white-space: nowrap;
+                background: #F0F4FF;
+                color: #2563EB;
+                border: 1.5px solid #C7D7FF;
+                border-radius: 7px;
+                padding: 0.28rem 0.75rem;
+                font-size: 0.82rem;
+                font-weight: 600;
+                cursor: pointer;
+            }}
+            .copy-btn:hover {{
+                background: #2563EB;
+                color: white;
+                border-color: #2563EB;
+            }}
+        </style>
+        <script>
+            function copyTopic(text, btn) {{
+                navigator.clipboard.writeText(text).then(function() {{
+                    var old = btn.innerText;
+                    btn.innerText = '✅ 복사됨';
+                    setTimeout(function() {{
+                        btn.innerText = old;
+                    }}, 1200);
+                }});
+            }}
+        </script>
+        {''.join(cards_html_parts)}
+        """,
+        height=165 * len(topics) + 40,
+        scrolling=False,
     )
 
-# ── 푸터
-st.markdown(
-    """
-    <div class="aion-footer">
-        <strong>AI-ON교과연구회</strong><br>
-        ⓒ 2025 AI-ON교과연구회. All rights reserved.<br>
-        본 자료는 교육적 목적으로 제작되었습니다.
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+    download_text = build_download_text(type_key, selected_field, topics)
+    col_download, col_reset = st.columns(2)
+    with col_download:
+        st.download_button(
+            "📥 결과를 TXT로 다운로드",
+            data=download_text,
+            file_name="ai_topic_results.txt",
+            mime="text/plain",
+            use_container_width=True,
+        )
+    with col_reset:
+        if st.button("🔄 초기화", use_container_width=True):
+            st.session_state.generated = False
+            st.session_state.generated_topics = []
+            st.session_state.generated_type_key = ""
+            st.session_state.generated_field = ""
+            st.session_state.generated_source = ""
+            st.rerun()
