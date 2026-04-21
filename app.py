@@ -216,7 +216,7 @@ def generate_with_gemini(type_key, field, keyword, count):
     if not AI_AVAILABLE:
         return [], "AI 미연결"
     try:
-        model = genai.GenerativeModel('gemini-1.5-flash-latest')
+       model = genai.GenerativeModel("models/gemini-1.5-flash")
         type_guide = (
             "찬반 논쟁이 가능한 주장문. 반드시 '~해야 한다', '~이다', '~이 우선이다' 형태로 끝낼 것."
             if type_key == "토론"
