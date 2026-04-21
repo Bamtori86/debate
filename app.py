@@ -2178,7 +2178,7 @@ TOPIC_DB = {
             "100년 후 인류는 지금보다 더 건강할까? 미래 보건 시나리오 상상하기."
         ]
     }
-
+}
 
 def get_type_key(selected_type_label: str) -> str:
     return "토론" if "토론" in selected_type_label else "토의"
