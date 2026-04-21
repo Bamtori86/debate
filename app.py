@@ -2,21 +2,12 @@ import random
 import time
 import streamlit as st
 import streamlit.components.v1 as components
-import google.generativeai as genai
 
 st.set_page_config(
     page_title="💡 AI 토론&토의 주제 생성기",
     page_icon="💡",
     layout="centered",
 )
-
-# ── Gemini 설정 (Streamlit Secrets에서 키 로드)
-try:
-    GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
-    genai.configure(api_key=GEMINI_API_KEY)
-    AI_AVAILABLE = True
-except Exception:
-    AI_AVAILABLE = False
 
 st.markdown("""
 <style>
@@ -37,12 +28,9 @@ h1 { color:#1E3A8A !important; font-weight:800 !important; font-size:1.9rem !imp
 [data-testid="stSidebar"] label,
 [data-testid="stSidebar"] p,
 [data-testid="stSidebar"] span,
-[data-testid="stSidebar"] div {
-    color:rgba(255,255,255,0.92) !important;
-    font-size:0.95rem !important;
-    font-family:'SUIT',sans-serif !important;
-}
+[data-testid="stSidebar"] div { color:rgba(255,255,255,0.92) !important; font-size:0.95rem !important; font-family:'SUIT',sans-serif !important; }
 [data-testid="stSidebar"] hr { border-color:rgba(255,255,255,0.25) !important; margin:0.7rem 0 !important; }
+
 [data-testid="stSidebar"] [data-testid="stRadio"] > div { gap:0.4rem !important; }
 [data-testid="stSidebar"] [data-testid="stRadio"] label {
     background:rgba(255,255,255,0.12) !important;
@@ -51,8 +39,7 @@ h1 { color:#1E3A8A !important; font-weight:800 !important; font-size:1.9rem !imp
     transition:all 0.2s !important; cursor:pointer !important; font-weight:600 !important;
 }
 [data-testid="stSidebar"] [data-testid="stRadio"] label:hover {
-    background:rgba(255,255,255,0.22) !important;
-    border-color:rgba(255,255,255,0.5) !important;
+    background:rgba(255,255,255,0.22) !important; border-color:rgba(255,255,255,0.5) !important;
 }
 [data-testid="stSidebar"] [data-testid="stSelectbox"] > div > div {
     background:rgba(255,255,255,0.15) !important;
@@ -63,12 +50,13 @@ h1 { color:#1E3A8A !important; font-weight:800 !important; font-size:1.9rem !imp
 [data-testid="stSidebar"] input {
     background:rgba(255,255,255,0.15) !important;
     border:1.5px solid rgba(255,255,255,0.35) !important;
-    border-radius:10px !important; color:white !important;
-    font-family:'SUIT',sans-serif !important;
+    border-radius:10px !important; color:white !important; font-family:'SUIT',sans-serif !important;
 }
 [data-testid="stSidebar"] input::placeholder { color:rgba(255,255,255,0.5) !important; }
 [data-testid="stSidebar"] [data-testid="stSlider"] > div > div > div { background:rgba(255,255,255,0.35) !important; }
 [data-testid="stSidebar"] [data-testid="stSlider"] > div > div > div > div { background:white !important; }
+
+/* 사이드바 버튼들 */
 [data-testid="stSidebar"] .stButton > button {
     background:white !important; color:#2563EB !important;
     border:none !important; border-radius:12px !important;
@@ -80,6 +68,8 @@ h1 { color:#1E3A8A !important; font-weight:800 !important; font-size:1.9rem !imp
     background:#EEF2FF !important; transform:translateY(-1px) !important;
     box-shadow:0 6px 20px rgba(0,0,0,0.2) !important;
 }
+
+/* 접기/펼치기 토글 */
 [data-testid="stSidebarCollapsedControl"] {
     background:#2563EB !important; border-radius:0 10px 10px 0 !important;
     box-shadow:3px 0 12px rgba(37,99,235,0.3) !important;
@@ -87,19 +77,19 @@ h1 { color:#1E3A8A !important; font-weight:800 !important; font-size:1.9rem !imp
 [data-testid="stSidebarCollapsedControl"]:hover { background:#1D4ED8 !important; }
 [data-testid="stSidebarCollapsedControl"] svg { fill:white !important; }
 
-/* ── AI 모드 배지 */
-.ai-mode-bar {
-    background:rgba(255,255,255,0.15);
-    border:1.5px solid rgba(255,255,255,0.3);
-    border-radius:12px;
-    padding:0.6rem 0.9rem;
-    display:flex; align-items:center; gap:0.5rem;
-    margin-top:0.3rem;
+/* AI 모드 배지 */
+.ai-badge {
+    display:inline-flex; align-items:center; gap:0.35rem;
+    background:linear-gradient(135deg,#F59E0B,#EF4444);
+    color:white; font-size:0.72rem; font-weight:800;
+    padding:0.22rem 0.65rem; border-radius:999px; letter-spacing:0.2px;
 }
-.ai-dot { width:8px; height:8px; background:#4ADE80; border-radius:50%; flex-shrink:0;
-  box-shadow:0 0 6px #4ADE80; animation:pulse 1.8s infinite; }
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-.ai-label { color:white !important; font-size:0.82rem !important; font-weight:700 !important; }
+.db-badge {
+    display:inline-flex; align-items:center; gap:0.35rem;
+    background:rgba(255,255,255,0.2); border:1.5px solid rgba(255,255,255,0.4);
+    color:white; font-size:0.72rem; font-weight:700;
+    padding:0.22rem 0.65rem; border-radius:999px;
+}
 
 /* ── 선택 요약 카드 */
 .summary-card {
@@ -115,13 +105,14 @@ h1 { color:#1E3A8A !important; font-weight:800 !important; font-size:1.9rem !imp
     padding:0.3rem 0.85rem; border-radius:999px;
 }
 .summary-arrow { color:rgba(255,255,255,0.45); font-size:0.85rem; }
-.summary-ai-chip {
+.summary-mode-chip {
     background:linear-gradient(135deg,#F59E0B,#EF4444);
-    color:white; font-size:0.72rem; font-weight:800;
-    padding:0.2rem 0.6rem; border-radius:999px;
+    color:white; font-size:0.75rem; font-weight:800;
+    padding:0.2rem 0.65rem; border-radius:999px; margin-left:0.2rem;
 }
 
-/* ── 액션 버튼 */
+/* ── 액션 버튼 영역 */
+.action-row { display:flex; gap:0.75rem; margin-bottom:1rem; }
 .stDownloadButton > button {
     background:linear-gradient(135deg,#059669,#0284C7) !important;
     color:white !important; border:none !important; border-radius:12px !important;
@@ -131,8 +122,16 @@ h1 { color:#1E3A8A !important; font-weight:800 !important; font-size:1.9rem !imp
 
 /* ── 안내 박스 */
 .welcome-box {
-    background:white; border-radius:16px; padding:2.2rem 1.8rem; text-align:center;
+    background:white; border-radius:16px; padding:2rem 1.5rem; text-align:center;
     box-shadow:0 2px 12px rgba(37,99,235,0.09); border:1.5px solid #EEF2FF; margin-top:1rem;
+}
+
+/* ── API 키 안내 */
+.api-guide {
+    background:rgba(255,255,255,0.13); border:1.5px solid rgba(255,255,255,0.3);
+    border-radius:10px; padding:0.6rem 0.85rem; margin-top:0.5rem;
+    font-size:0.78rem !important; color:rgba(255,255,255,0.8) !important;
+    line-height:1.55;
 }
 
 /* ── 푸터 */
@@ -144,9 +143,8 @@ h1 { color:#1E3A8A !important; font-weight:800 !important; font-size:1.9rem !imp
 </style>
 """, unsafe_allow_html=True)
 
-
 # ─────────────────────────────────────────────
-# 폴백 DB (AI 실패 시)
+# 폴백용 로컬 DB (API 없을 때 사용)
 # ─────────────────────────────────────────────
 FALLBACK_DB = {
     "학급": {
@@ -368,56 +366,56 @@ FALLBACK_DB = {
 
 
 # ─────────────────────────────────────────────
-# Gemini AI 생성
+# AI 생성 함수 (Gemini)
 # ─────────────────────────────────────────────
-def generate_with_gemini(type_key: str, field: str, keyword: str, count: int) -> list:
-    if not AI_AVAILABLE:
-        return []
+def generate_with_gemini(api_key: str, type_key: str, field: str, keyword: str, count: int) -> list:
     try:
+        import google.generativeai as genai
+        genai.configure(api_key=api_key)
         model = genai.GenerativeModel("gemini-1.5-flash")
+
         type_guide = (
-            "찬반 논쟁이 가능한 주장문 형태. 반드시 '~해야 한다', '~이다', '~보다 ~이 우선이다' 등으로 끝낼 것."
+            "찬반 논쟁이 가능한 주장문 형태 (예: '~해야 한다', '~이다')"
             if type_key == "토론"
-            else "해결 방안을 탐색하는 개방형 질문 형태. 반드시 '~하려면 어떻게 할까?', '~방법은 무엇일까?', '~아이디어는?' 등으로 끝낼 것."
+            else "해결책을 모색하는 질문 형태 (예: '~하려면 어떻게 해야 할까?', '~방법은 무엇일까?')"
         )
-        keyword_clause = f"반드시 키워드 '{keyword}'와 관련된 내용으로 " if keyword.strip() else ""
+        keyword_text = f"키워드 '{keyword}'와 관련하여 " if keyword.strip() else ""
 
-        prompt = f"""당신은 초등학교·중학교 담임 교사를 돕는 수업 설계 전문가입니다.
+        prompt = f"""당신은 초등학교·중학교 교사를 위한 교육 전문가입니다.
 
-[요청]
-아래 조건에 맞는 학교 수업용 {type_key} 주제를 정확히 {count}개 생성해주세요.
+다음 조건에 맞는 수업용 주제를 정확히 {count}개 생성해주세요.
 
-[조건]
-- 유형: {type_key}
-- 문장 형식: {type_guide}
+- 유형: {type_key} ({type_guide})
 - 분야: {field}
-- {keyword_clause}학교·학급 생활과 밀접한 현실적인 내용으로 작성
-- 초등학교 5~6학년 또는 중학교 1~2학년 수준의 어휘 사용
-- 지나치게 추상적이거나 전문적인 표현 지양
-- 서로 다른 관점과 주제로 다양하게 구성 (중복 금지)
-- 토론이면 찬성/반대 입장이 모두 가능한 주제로 선정
+- {keyword_text}학교 수업 상황에 적합한 내용
 
-[출력 규칙]
-- 주제 텍스트만 출력 (번호, 기호, 설명, 부연 설명 일절 없음)
-- 각 주제는 줄바꿈으로만 구분
-- 반드시 {count}개 출력
+규칙:
+1. 주제만 출력하고, 번호·기호·설명 없이 줄바꿈으로만 구분
+2. 초등~중학생 눈높이에 맞는 언어 사용
+3. 너무 추상적이지 않게 구체적으로 작성
+4. 중복 없이 다양한 관점으로 구성
+5. 반드시 {count}개 출력
 
-주제:"""
+주제 목록:"""
 
-        resp = model.generate_content(prompt)
-        raw = resp.text.strip()
+        response = model.generate_content(prompt)
+        raw = response.text.strip()
         lines = [l.strip() for l in raw.split("\n") if l.strip()]
+        # 앞의 번호·기호 제거
         cleaned = []
         for line in lines:
-            line = line.lstrip("0123456789.-·•*）) ").strip()
+            line = line.lstrip("0123456789.-·•*） ").strip()
             if line:
                 cleaned.append(line)
         return cleaned[:count]
-    except Exception:
+    except Exception as e:
         return []
 
 
-def generate_from_db(type_key, field, keyword, count):
+# ─────────────────────────────────────────────
+# 로컬 DB 생성
+# ─────────────────────────────────────────────
+def generate_from_db(type_key: str, field: str, keyword: str, count: int) -> list:
     if field == "기타":
         pool = []
         for cat in FALLBACK_DB.values():
@@ -426,7 +424,7 @@ def generate_from_db(type_key, field, keyword, count):
         if keyword.strip():
             kw = keyword.strip()
             pool = [t for t in pool if kw in t] + [t for t in pool if kw not in t]
-        return pool[:min(count, len(pool))]
+        return random.sample(pool, min(count, len(pool)))
     pool = list(FALLBACK_DB.get(field, {}).get(type_key, []))
     random.shuffle(pool)
     return pool[:min(count, len(pool))]
@@ -446,15 +444,14 @@ def build_download_text(type_key, field, keyword, topics, mode):
 
 
 def topic_card_html(idx, badge, topic, gradient):
-    safe = topic.replace("\\", "\\\\").replace("'", "\\'").replace('"', "&quot;").replace("\n", " ")
-    return f"""<!DOCTYPE html><html><head><meta charset="utf-8">
+    safe = topic.replace("'", "\\'").replace('"', "&quot;").replace("\n", " ")
+    html = f"""<!DOCTYPE html><html><head><meta charset="utf-8">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=SUIT:wght@500;700;800&display=swap');
 *{{margin:0;padding:0;box-sizing:border-box;}}
 body{{background:transparent;font-family:'SUIT','Noto Sans KR',sans-serif;padding:2px 0;}}
-.card{{background:white;border-radius:14px;padding:0.8rem 1rem;
-  display:flex;align-items:center;gap:0.7rem;
-  box-shadow:0 2px 12px rgba(37,99,235,0.10);border:1.5px solid #EEF2FF;transition:box-shadow 0.2s;}}
+.card{{background:white;border-radius:14px;padding:0.8rem 1rem;display:flex;align-items:center;
+  gap:0.7rem;box-shadow:0 2px 12px rgba(37,99,235,0.10);border:1.5px solid #EEF2FF;transition:box-shadow 0.2s;}}
 .card:hover{{box-shadow:0 5px 20px rgba(37,99,235,0.18);}}
 .num{{color:#1E3A8A;font-weight:800;font-size:1rem;min-width:26px;text-align:center;flex-shrink:0;}}
 .badge{{font-size:0.7rem;font-weight:700;color:white;background:{gradient};
@@ -485,6 +482,7 @@ function doCopy(t,id){{
     document.execCommand('copy');document.body.removeChild(a);done();}}
 }}
 </script></body></html>"""
+    return html
 
 
 # ─────────────────────────────────────────────
@@ -502,7 +500,7 @@ for k, v in {
 # 헤더
 # ─────────────────────────────────────────────
 st.title("💡 AI 토론&토의 주제 생성기")
-st.caption("학급 토론·토의 수업을 위한 맞춤 주제를 Gemini AI가 생성해드립니다.")
+st.caption("학급 토론·토의 수업을 위한 맞춤 주제를 AI가 생성해드립니다.")
 
 # ─────────────────────────────────────────────
 # 사이드바
@@ -514,19 +512,6 @@ with st.sidebar:
       <div style='font-size:1.05rem;font-weight:800;color:white;letter-spacing:-0.3px;'>주제 설정</div>
       <div style='font-size:0.73rem;color:rgba(255,255,255,0.6);margin-top:0.15rem;'>옵션을 선택하고 생성하세요</div>
     </div>""", unsafe_allow_html=True)
-
-    # AI 상태 표시
-    if AI_AVAILABLE:
-        st.markdown("""<div class='ai-mode-bar'>
-          <div class='ai-dot'></div>
-          <span class='ai-label'>Gemini AI 연결됨 · 무한 생성 가능</span>
-        </div>""", unsafe_allow_html=True)
-    else:
-        st.markdown("""<div style='background:rgba(239,68,68,0.2);border:1.5px solid rgba(239,68,68,0.4);
-          border-radius:12px;padding:0.6rem 0.9rem;font-size:0.8rem;color:rgba(255,255,255,0.85);'>
-          ⚠️ API 키 미설정 — DB 모드로 동작
-        </div>""", unsafe_allow_html=True)
-
     st.divider()
 
     st.markdown("<div style='font-size:0.75rem;color:rgba(255,255,255,0.65);font-weight:700;letter-spacing:0.5px;margin-bottom:0.35rem;'>📌 유형</div>", unsafe_allow_html=True)
@@ -534,8 +519,7 @@ with st.sidebar:
 
     st.markdown("<div style='font-size:0.75rem;color:rgba(255,255,255,0.65);font-weight:700;letter-spacing:0.5px;margin:0.75rem 0 0.35rem;'>📂 분야</div>", unsafe_allow_html=True)
     selected_field = st.selectbox(
-        "분야",
-        ["학급","학교","환경","사회","동물","과학","인공지능","경제","문화예술","건강","기타"],
+        "분야", ["학급","학교","환경","사회","동물","과학","인공지능","경제","문화예술","건강","기타"],
         label_visibility="collapsed",
     )
 
@@ -546,37 +530,49 @@ with st.sidebar:
 
     st.markdown("<div style='font-size:0.75rem;color:rgba(255,255,255,0.65);font-weight:700;letter-spacing:0.5px;margin:0.75rem 0 0.35rem;'>🎯 생성 개수</div>", unsafe_allow_html=True)
     generate_count = st.slider("개수", 1, 10, 3, label_visibility="collapsed")
-    st.markdown(f"<div style='text-align:center;color:white;font-size:0.85rem;font-weight:700;margin-top:-0.2rem;margin-bottom:0.4rem;'>{generate_count}개</div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='text-align:center;color:white;font-size:0.85rem;font-weight:700;margin-top:-0.2rem;margin-bottom:0.5rem;'>{generate_count}개</div>", unsafe_allow_html=True)
+
+    st.divider()
+
+    # Gemini API 키 입력
+    st.markdown("<div style='font-size:0.75rem;color:rgba(255,255,255,0.65);font-weight:700;letter-spacing:0.5px;margin-bottom:0.35rem;'>🤖 Gemini API 키 (선택)</div>", unsafe_allow_html=True)
+    api_key = st.text_input("API키", type="password", placeholder="AIza...", label_visibility="collapsed")
+    if api_key:
+        st.markdown("<div class='ai-badge'>✨ AI 생성 모드</div>", unsafe_allow_html=True)
+    else:
+        st.markdown("<div class='db-badge'>📦 기본 DB 모드</div>", unsafe_allow_html=True)
+    st.markdown("""<div class='api-guide'>
+API 키 없이도 사용 가능합니다.<br>
+키 입력 시 Gemini AI가 매번 새로운 주제를 무한 생성합니다.<br>
+<a href='https://aistudio.google.com/app/apikey' target='_blank'
+   style='color:rgba(255,255,255,0.8);font-size:0.75rem;'>🔗 무료 API 키 발급</a>
+</div>""", unsafe_allow_html=True)
 
     st.divider()
     generate_btn = st.button("✨ 주제 생성하기", use_container_width=True)
 
 
 # ─────────────────────────────────────────────
-# 생성 로직
+# 주제 생성 로직
 # ─────────────────────────────────────────────
 type_key = "토론" if "토론" in selected_type else "토의"
 
-def do_generate(tk, fd, kw, cnt):
-    topics = []
-    mode = "로컬 DB"
-    if AI_AVAILABLE:
-        with st.spinner("🤖 Gemini AI가 주제를 생성하는 중..."):
-            topics = generate_with_gemini(tk, fd, kw, cnt)
-            mode = "Gemini AI"
-        if not topics:
-            st.warning("⚠️ AI 생성 실패 — 로컬 DB로 대체합니다.")
-            topics = generate_from_db(tk, fd, kw, cnt)
-            mode = "로컬 DB (폴백)"
-    else:
-        with st.spinner("주제를 불러오는 중..."):
-            time.sleep(0.6)
-            topics = generate_from_db(tk, fd, kw, cnt)
-            mode = "로컬 DB"
-    return topics, mode
-
 if generate_btn:
-    topics, mode = do_generate(type_key, selected_field, keyword_input, generate_count)
+    with st.spinner("주제를 생성하는 중입니다..."):
+        topics = []
+        mode = "로컬 DB"
+        if api_key.strip():
+            topics = generate_with_gemini(api_key.strip(), type_key, selected_field, keyword_input, generate_count)
+            mode = "Gemini AI"
+            if not topics:
+                st.warning("⚠️ AI 생성에 실패했습니다. 로컬 DB로 대체합니다.")
+                topics = generate_from_db(type_key, selected_field, keyword_input, generate_count)
+                mode = "로컬 DB (폴백)"
+        else:
+            time.sleep(0.8)
+            topics = generate_from_db(type_key, selected_field, keyword_input, generate_count)
+            mode = "로컬 DB"
+
     st.session_state.topics = topics
     st.session_state.generated = True
     st.session_state.type_key = type_key
@@ -593,14 +589,11 @@ if not st.session_state.generated:
     st.markdown("""
     <div class="welcome-box">
       <div style='font-size:2.4rem;margin-bottom:0.65rem;'>💡</div>
-      <div style='font-size:1.1rem;font-weight:800;color:#1E3A8A;margin-bottom:0.5rem;'>주제를 생성해보세요!</div>
-      <div style='font-size:0.9rem;color:#475569;line-height:1.75;'>
+      <div style='font-size:1.05rem;font-weight:700;color:#1E3A8A;margin-bottom:0.4rem;'>주제를 생성해보세요!</div>
+      <div style='font-size:0.88rem;color:#64748B;line-height:1.7;'>
         왼쪽 사이드바에서 유형과 분야를 선택한 뒤<br>
-        <b style="color:#2563EB;">✨ 주제 생성하기</b> 버튼을 눌러주세요.
-      </div>
-      <div style='margin-top:1.2rem;padding:0.75rem 1rem;background:#F0F9FF;border-radius:10px;
-                  border:1.5px solid #BAE6FD;font-size:0.82rem;color:#0369A1;line-height:1.6;'>
-        🤖 <b>Gemini AI 연동</b> — 매번 새롭고 다양한 주제를<br>무한으로 생성합니다.
+        <b>✨ 주제 생성하기</b> 버튼을 눌러주세요.<br><br>
+        <span style='font-size:0.82rem;color:#94A3B8;'>Gemini API 키를 입력하면<br>AI가 매번 새롭고 다양한 주제를 생성합니다.</span>
       </div>
     </div>
     """, unsafe_allow_html=True)
@@ -611,26 +604,40 @@ else:
     topics = st.session_state.topics
     mode = st.session_state.mode
 
-    # 요약 카드
-    mode_badge = '<span class="summary-ai-chip">🤖 Gemini AI</span>' if "Gemini" in mode else '<span style="color:rgba(255,255,255,0.6);font-size:0.78rem;">📦 DB</span>'
-    kw_part = f'<span class="summary-arrow">›</span><span class="summary-chip">🔍 {kw.strip()}</span>' if fd == "기타" and kw.strip() else ""
+    st.success(f"✅ 주제 생성 완료! ({mode})")
+
+    # ── 선택 요약 카드
+    kw_chip = f'<span class="summary-arrow">›</span><span class="summary-chip">🔍 {kw.strip()}</span>' if fd == "기타" and kw.strip() else ""
+    mode_chip = '<span class="summary-mode-chip">🤖 AI</span>' if "Gemini" in mode else ""
     st.markdown(f"""
     <div class="summary-card">
-      <span class="summary-label">생성 결과</span>
+      <span class="summary-label">선택 요약</span>
       <span class="summary-chip">{'🗣️' if tk=='토론' else '💬'} {tk}</span>
       <span class="summary-arrow">›</span>
       <span class="summary-chip">📂 {fd}</span>
-      {kw_part}
-      {mode_badge}
-      <span style="margin-left:auto;color:rgba(255,255,255,0.8);font-size:0.82rem;font-weight:700;">{len(topics)}개</span>
+      {kw_chip}
+      {mode_chip}
+      <span style="margin-left:auto;color:rgba(255,255,255,0.75);font-size:0.8rem;font-weight:600;">{len(topics)}개 생성됨</span>
     </div>
     """, unsafe_allow_html=True)
 
-    # 액션 버튼
+    # ── 다시 생성 / 초기화 버튼
     col1, col2 = st.columns([1, 1])
     with col1:
         if st.button("🔄 다시 생성하기", use_container_width=True, key="regen"):
-            new_topics, new_mode = do_generate(tk, fd, kw, st.session_state.count)
+            with st.spinner("주제를 다시 생성하는 중..."):
+                new_topics = []
+                new_mode = mode
+                if api_key.strip():
+                    new_topics = generate_with_gemini(api_key.strip(), tk, fd, kw, st.session_state.count)
+                    new_mode = "Gemini AI"
+                    if not new_topics:
+                        new_topics = generate_from_db(tk, fd, kw, st.session_state.count)
+                        new_mode = "로컬 DB (폴백)"
+                else:
+                    time.sleep(0.6)
+                    new_topics = generate_from_db(tk, fd, kw, st.session_state.count)
+                    new_mode = "로컬 DB"
             st.session_state.topics = new_topics
             st.session_state.mode = new_mode
             st.rerun()
@@ -642,10 +649,11 @@ else:
 
     st.markdown("")
 
-    # 주제 카드
+    # ── 주제 카드 (인라인 복사 버튼)
+    badge = tk
     gradient = "linear-gradient(135deg,#2563EB,#7C3AED)" if tk == "토론" else "linear-gradient(135deg,#0EA5E9,#6366F1)"
     for idx, topic in enumerate(topics, 1):
-        components.html(topic_card_html(idx, tk, topic, gradient), height=66, scrolling=False)
+        components.html(topic_card_html(idx, badge, topic, gradient), height=66, scrolling=False)
 
     st.markdown("")
     st.download_button(
@@ -656,11 +664,11 @@ else:
         use_container_width=True,
     )
 
-# 푸터
+# ── 푸터
 st.markdown("""
 <div class="aion-footer">
   <strong>AI-ON교과연구회</strong><br>
-  ⓒ 2025 AI-ON교과연구회. All rights reserved.<br>
+  ⓒ AI-ON교과연구회. All rights reserved.<br>
   본 자료는 교육적 목적으로 제작되었습니다.
 </div>
 """, unsafe_allow_html=True)
