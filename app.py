@@ -216,14 +216,51 @@ def generate_with_gemini(type_key, field, keyword, count):
     if not AI_AVAILABLE:
         return [], "AI 미연결"
     try:
-       model = genai.GenerativeModel("models/gemini-1.5-flash")
-        type_guide = (
-            "찬반 논쟁이 가능한 주장문. 반드시 '~해야 한다', '~이다', '~이 우선이다' 형태로 끝낼 것."
-            if type_key == "토론"
-            else "해결 방안 탐색 개방형 질문. 반드시 '~어떻게 할까?', '~무엇일까?', '~아이디어는?' 형태로 끝낼 것."
-        )
+        # 1. 모델명 정석대로 수정 (models/ 붙이기)
+        model = genai.GenerativeModel("models/gemini-1.5-flash")
+        
+        # 2. 들여쓰기(간격)를 모두 일정하게 통일
+        if type_key == "토론":
+            type_guide = "찬반 논쟁이 가능한 주장문. 반드시 '~해야 한다', '~이다', '~이 우선이다' 형태로 끝낼 것."
+        else:
+            type_guide = "해결 방안 탐색 개방형 질문. 반드시 '~어떻게 할까?', '~무엇일까?', '~아이디어는?' 형태로 끝낼 것."
+            
         kw_clause = f"반드시 키워드 '{keyword}'와 관련된 내용으로 " if keyword.strip() else ""
+        
         prompt = f"""당신은 초·중학교 담임 교사를 돕는 수업 설계 전문가입니다.
+아래 조건에 맞는 학교 수업용 {type_key} 주제를 정확히 {count}개 생성하세요.
+
+조건:
+- 유형: {type_key} / 형식: {type_guide}
+- 분야: {field}
+- {kw_clause}학교·학급 생활과 밀접한 현실적 내용
+- 초등 5~6학년 또는 중1~2 수준 어휘
+- 서로 다른 관점으로 다양하게 구성 (중복 금지)
+
+출력 규칙:
+- 주제 텍스트만 출력 (번호·기호·설명 없음)
+- 줄바꿈으로만 구분
+- 반드시 {count}개 출력
+
+주제:"""
+
+        resp = model.generate_content(prompt)
+        raw = resp.text.strip()
+        lines = [l.strip() for l in raw.split("\n") if l.strip()]
+        
+        cleaned = []
+        for line in lines:
+            line = line.lstrip("0123456789.-·•*）) ").strip()
+            if line:
+                cleaned.append(line)
+                
+        result = cleaned[:count]
+        if result:
+            return result, "Gemini AI"
+        return [], "빈 응답"
+        
+    except Exception as e:
+        return [], f"오류:{str(e)[:80]}"
 
 아래 조건에 맞는 학교 수업용 {type_key} 주제를 정확히 {count}개 생성하세요.
 
