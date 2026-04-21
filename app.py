@@ -3,7 +3,6 @@ import time
 
 import streamlit as st
 
-
 st.set_page_config(
     page_title="💡 AI 토론&토의 주제 생성기",
     page_icon="💡",
@@ -15,20 +14,28 @@ st.markdown(
     <style>
     @import url('https://fonts.googleapis.com/css2?family=SUIT:wght@400;500;600;700;800&display=swap');
 
-    .stApp {
-        background-color: #F0F4FF;
+    html, body, [class*="css"] {
         font-family: 'SUIT', 'Pretendard', 'Noto Sans KR', sans-serif;
     }
+    .stApp {
+        background: linear-gradient(135deg, #EEF2FF 0%, #F0F9FF 50%, #F5F3FF 100%);
+        min-height: 100vh;
+    }
+
+    /* ── 헤더 타이틀 */
     h1 {
         color: #1E3A8A !important;
         font-weight: 800 !important;
-        letter-spacing: -0.3px;
+        letter-spacing: -0.5px;
+        font-size: 2rem !important;
     }
+
+    /* ── 사이드바 */
     [data-testid="stSidebar"] {
         min-width: 370px !important;
         max-width: 370px !important;
-        background: linear-gradient(180deg, #EEF4FF 0%, #F7FAFF 100%);
-        border-right: 1px solid #DCE8FF;
+        background: linear-gradient(180deg, #EEF4FF 0%, #F7FAFF 100%) !important;
+        border-right: 1.5px solid #C7D7FF !important;
     }
     [data-testid="stSidebar"] * {
         font-size: 1.02rem !important;
@@ -37,56 +44,141 @@ st.markdown(
     [data-testid="stSidebar"] .stSelectbox,
     [data-testid="stSidebar"] .stTextInput,
     [data-testid="stSidebar"] .stSlider {
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.4rem;
     }
-    [data-testid="stSidebar"] .stSlider [role="slider"] {
-        transform: scale(1.08);
-    }
+
+    /* ── 버튼 (생성) */
     .stButton > button {
-        background-color: #2563EB !important;
+        background: linear-gradient(135deg, #2563EB, #7C3AED) !important;
         color: white !important;
         border: none !important;
-        border-radius: 8px !important;
-        font-weight: 600 !important;
-        padding: 0.6rem 1rem !important;
+        border-radius: 10px !important;
+        font-weight: 700 !important;
+        font-size: 1rem !important;
+        padding: 0.65rem 1rem !important;
+        transition: all 0.2s ease;
+        box-shadow: 0 4px 14px rgba(37,99,235,0.3) !important;
     }
     .stButton > button:hover {
-        background-color: #1D4ED8 !important;
-        color: white !important;
+        background: linear-gradient(135deg, #1D4ED8, #6D28D9) !important;
+        box-shadow: 0 6px 20px rgba(37,99,235,0.45) !important;
+        transform: translateY(-1px);
     }
+
+    /* ── 다운로드 버튼 */
+    .stDownloadButton > button {
+        background: linear-gradient(135deg, #059669, #0284C7) !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 10px !important;
+        font-weight: 700 !important;
+        padding: 0.65rem 1rem !important;
+        box-shadow: 0 4px 14px rgba(5,150,105,0.25) !important;
+    }
+    .stDownloadButton > button:hover {
+        opacity: 0.9 !important;
+    }
+
+    /* ── 주제 카드 */
     .topic-card {
         background: white;
-        border-left: 4px solid #2563EB;
-        border-radius: 10px;
-        padding: 1rem 1.5rem;
-        margin-bottom: 0.75rem;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        border-left: 5px solid;
+        border-image: linear-gradient(180deg, #2563EB, #7C3AED) 1;
+        border-radius: 12px;
+        padding: 1rem 1.4rem;
+        margin-bottom: 0.85rem;
+        box-shadow: 0 3px 12px rgba(37,99,235,0.10);
+        transition: box-shadow 0.2s;
+        position: relative;
+    }
+    .topic-card:hover {
+        box-shadow: 0 6px 22px rgba(37,99,235,0.18);
     }
     .topic-header {
         display: flex;
         gap: 0.6rem;
         align-items: center;
-        margin-bottom: 0.35rem;
+        margin-bottom: 0.4rem;
     }
     .topic-number {
         color: #1E3A8A;
-        font-weight: 700;
+        font-weight: 800;
+        font-size: 1.05rem;
     }
     .topic-badge {
         display: inline-block;
-        font-size: 0.78rem;
+        font-size: 0.76rem;
         font-weight: 700;
-        color: #2563EB;
-        background-color: #E0EAFF;
-        padding: 0.15rem 0.55rem;
+        color: white;
+        background: linear-gradient(135deg, #2563EB, #7C3AED);
+        padding: 0.18rem 0.65rem;
         border-radius: 999px;
+        letter-spacing: 0.3px;
     }
     .topic-text {
         color: #0F172A;
-        font-size: 1rem;
-        line-height: 1.5;
+        font-size: 1.02rem;
+        line-height: 1.6;
+        font-weight: 500;
+    }
+    .copy-btn {
+        margin-top: 0.6rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        background: #F0F4FF;
+        color: #2563EB;
+        border: 1.5px solid #C7D7FF;
+        border-radius: 7px;
+        padding: 0.28rem 0.75rem;
+        font-size: 0.82rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.18s;
+        font-family: 'SUIT', sans-serif;
+    }
+    .copy-btn:hover {
+        background: #2563EB;
+        color: white;
+        border-color: #2563EB;
+    }
+    .copy-btn.copied {
+        background: #D1FAE5;
+        color: #065F46;
+        border-color: #6EE7B7;
+    }
+
+    /* ── 푸터 */
+    .aion-footer {
+        margin-top: 3rem;
+        padding: 1.2rem 1rem;
+        text-align: center;
+        border-top: 1.5px solid #DCE8FF;
+        color: #64748B;
+        font-size: 0.82rem;
+        line-height: 1.7;
+    }
+    .aion-footer strong {
+        color: #1E3A8A;
+        font-weight: 700;
     }
     </style>
+
+    <script>
+    function copyTopic(text, btnId) {
+        navigator.clipboard.writeText(text).then(function() {
+            var btn = document.getElementById(btnId);
+            if (btn) {
+                btn.classList.add('copied');
+                btn.innerHTML = '✅ 복사됨';
+                setTimeout(function() {
+                    btn.classList.remove('copied');
+                    btn.innerHTML = '📋 복사';
+                }, 1800);
+            }
+        });
+    }
+    </script>
     """,
     unsafe_allow_html=True,
 )
@@ -297,7 +389,6 @@ TOPIC_DB = {
             "청소년 수면 시간을 보장하기 위해 등교 시간을 늦춰야 한다",
             "학교 내 에너지 음료 판매를 금지해야 한다",
             "정신건강 교육은 정규 수업으로 의무화해야 한다",
-            "학교 시험에 계산기 사용을 허용해야 한다",
             "학생 건강 관리를 위해 학교에서 운동 앱 사용을 장려해야 한다",
             "게임 시간 제한은 청소년 건강을 위해 필요하다",
         ],
@@ -340,7 +431,6 @@ def generate_topics(type_key: str, field: str, keyword: str, count: int) -> list
         if len(merged) >= count:
             return random.sample(merged, count)
         return merged
-
     pool = TOPIC_DB[field][type_key]
     if len(pool) >= count:
         return random.sample(pool, count)
@@ -358,47 +448,40 @@ def build_download_text(type_key: str, field: str, keyword: str, topics: list) -
     lines.append("")
     lines.append("[생성된 주제]")
     lines.extend([f"{idx}. {topic}" for idx, topic in enumerate(topics, start=1)])
+    lines.append("")
+    lines.append("ⓒ AI-ON교과연구회. All rights reserved.")
     return "\n".join(lines)
 
 
+# ── 헤더
 st.title("💡 AI 토론&토의 주제 생성기")
 st.caption("학급 토론·토의 수업을 위한 주제를 AI가 추천해드립니다.")
 
+# ── 사이드바
 with st.sidebar:
-    st.subheader("설정")
+    st.markdown("### ⚙️ 설정")
+    st.divider()
     selected_type = st.radio(
-        "유형 선택",
+        "📌 유형 선택",
         ["🗣️ 토론", "💬 토의"],
     )
     selected_field = st.selectbox(
-        "분야 선택",
-        [
-            "학급",
-            "학교",
-            "환경",
-            "사회",
-            "동물",
-            "과학",
-            "인공지능",
-            "경제",
-            "문화예술",
-            "건강",
-            "기타",
-        ],
+        "📂 분야 선택",
+        ["학급","학교","환경","사회","동물","과학","인공지능","경제","문화예술","건강","기타"],
     )
     keyword_input = ""
     if selected_field == "기타":
         keyword_input = st.text_input(
-            "키워드 입력",
+            "🔍 키워드 입력",
             placeholder="예: 급식, 독서, 스마트폰...",
         )
-    generate_count = st.slider("주제 생성 개수", 1, 10, 3)
+    generate_count = st.slider("🎯 주제 생성 개수", 1, 10, 3)
+    st.divider()
     generate_button = st.button("✨ 주제 생성하기", use_container_width=True)
 
+# ── 메인
 if not generate_button:
-    st.info(
-        "왼쪽 사이드바에서 유형/분야를 선택하고 `✨ 주제 생성하기` 버튼을 눌러보세요."
-    )
+    st.info("👈 왼쪽 사이드바에서 유형/분야를 선택하고 `✨ 주제 생성하기` 버튼을 눌러보세요.")
 else:
     with st.spinner("주제를 생성하는 중입니다..."):
         time.sleep(1.2)
@@ -416,9 +499,12 @@ else:
         )
     )
     st.markdown(summary_text)
+    st.markdown("")
 
     badge_label = "토론" if type_key == "토론" else "토의"
     for idx, topic in enumerate(topics, start=1):
+        btn_id = f"copy_btn_{idx}"
+        safe_topic = topic.replace("'", "\\'")
         st.markdown(
             f"""
             <div class="topic-card">
@@ -427,37 +513,33 @@ else:
                     <span class="topic-badge">{badge_label}</span>
                 </div>
                 <div class="topic-text">{topic}</div>
+                <button class="copy-btn" id="{btn_id}"
+                    onclick="copyTopic('{safe_topic}', '{btn_id}')">
+                    📋 복사
+                </button>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
+    st.markdown("---")
     download_text = build_download_text(type_key, selected_field, keyword_input, topics)
     st.download_button(
-        "📥 결과를 TXT로 다운로드",
+        "📥 전체 결과를 TXT로 다운로드",
         data=download_text,
         file_name="ai_topic_results.txt",
         mime="text/plain",
         use_container_width=True,
     )
 
-
-# ──────────────────────────────────────
-# [Gemini API 연결 시 아래 코드를 활성화하세요]
-# pip install google-generativeai
-#
-# import google.generativeai as genai
-#
-# def generate_topics_with_gemini(type, field, keyword, count):
-#     genai.configure(api_key="YOUR_API_KEY_HERE")
-#     model = genai.GenerativeModel("gemini-pro")
-#     prompt = f"""
-#     당신은 교육 전문가입니다.
-#     유형: {type} / 분야: {field} / 키워드: {keyword}
-#     위 조건에 맞는 학교 수업용 주제를 {count}개 생성해주세요.
-#     각 주제는 번호 없이 줄바꿈으로 구분해주세요.
-#     """
-#     response = model.generate_content(prompt)
-#     topics = response.text.strip().split("\n")
-#     return [t.strip() for t in topics if t.strip()][:count]
-# ──────────────────────────────────────
+# ── 푸터
+st.markdown(
+    """
+    <div class="aion-footer">
+        <strong>AI-ON교과연구회</strong><br>
+        ⓒ 2025 AI-ON교과연구회. All rights reserved.<br>
+        본 자료는 교육적 목적으로 제작되었습니다.
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
