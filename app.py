@@ -2568,7 +2568,7 @@ if st.session_state.generated:
         </script>
         {''.join(cards_html_parts)}
         """,
-        height=70 * len(topics) + 10,
+        height=110 * len(topics) + 20,
         scrolling=False,
     )
 
