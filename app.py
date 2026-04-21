@@ -2510,8 +2510,8 @@ if st.session_state.generated:
                 background: white;
                 border-left: 4px solid #2563EB;
                 border-radius: 10px;
-                padding: 1rem 1.5rem;
-                margin-bottom: 0.75rem;
+                padding: 0.5rem 1rem;
+                margin-bottom: 0.4rem;
                 box-shadow: 0 2px 8px rgba(0,0,0,0.08);
             }}
             .topic-header {{
