@@ -550,14 +550,7 @@ if st.session_state.force_rebuild_db:
 
 
 def generate_topics(type_key: str, field: str, count: int) -> tuple[list, str]:
-    if field == "기타":
-        gemini_topics = generate_misc_topics_with_gemini(type_key, count)
-        if gemini_topics and len(gemini_topics) >= count:
-            return gemini_topics, "gemini"
-        mixed = []
-        for category_data in EXPANDED_TOPIC_DB.values():
-            mixed.extend(category_data[type_key])
-        return random.sample(mixed, count), "local"
+
 
     pool = EXPANDED_TOPIC_DB[field][type_key]
     if len(pool) >= count:
@@ -612,19 +605,11 @@ with st.sidebar:
             "경제",
             "문화예술",
             "건강",
-        ] + (["기타"] if is_gemini_enabled() else []),
+        ] 
     )
     generate_count = st.slider("주제 생성 개수", 1, 5, 3)
     generate_button = st.button("✨ 주제 생성하기", use_container_width=True)
-    if st.button("♻️ 주제 DB 강제 재생성", use_container_width=True):
-        st.session_state.force_rebuild_db = True
-        st.rerun()
-    if is_gemini_enabled():
-        st.caption("기타 분야는 Gemini 기반으로 생성됩니다.")
-    else:
-        st.caption("Gemini API가 연결되면 기타 분야를 사용할 수 있습니다.")
-    if st.session_state.last_build_message:
-        st.caption(st.session_state.last_build_message)
+   
 
 if not generate_button:
     if not st.session_state.generated:
