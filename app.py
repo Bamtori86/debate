@@ -27,13 +27,25 @@ html, body, [class*="css"] { font-family:'SUIT','Pretendard','Noto Sans KR',sans
 
 h1 { color:#1E3A8A !important; font-weight:800 !important; font-size:1.9rem !important; letter-spacing:-0.5px; }
 
-/* ── 사이드바 */
+/* ── 사이드바 접기 버튼 위 아이콘 텍스트 숨김 */
+[data-testid="stSidebarCollapsedControl"] span,
+[data-testid="stSidebarCollapsedControl"] .material-icons,
+button[kind="header"] span.material-icons,
+[data-testid="stSidebar"] > div:first-child > div:first-child { overflow:hidden; }
+section[data-testid="stSidebarCollapsedControl"] { overflow:hidden; }
+.st-emotion-cache-1rtdyuf, .st-emotion-cache-ezrdkr { display:none !important; }
+
+/* ── 사이드바 전체 */
 [data-testid="stSidebar"] {
     min-width:300px !important; max-width:300px !important;
     background:linear-gradient(160deg,#1E3A8A 0%,#2563EB 60%,#4F46E5 100%) !important;
     border-right:none !important;
     box-shadow:4px 0 24px rgba(37,99,235,0.18);
 }
+/* 사이드바 상단 여백 제거 및 오버플로 숨김 */
+[data-testid="stSidebar"] > div { padding-top:0 !important; }
+[data-testid="stSidebarHeader"] { display:none !important; }
+
 [data-testid="stSidebar"] label,
 [data-testid="stSidebar"] p,
 [data-testid="stSidebar"] span,
@@ -69,23 +81,36 @@ h1 { color:#1E3A8A !important; font-weight:800 !important; font-size:1.9rem !imp
 [data-testid="stSidebar"] input::placeholder { color:rgba(255,255,255,0.5) !important; }
 [data-testid="stSidebar"] [data-testid="stSlider"] > div > div > div { background:rgba(255,255,255,0.35) !important; }
 [data-testid="stSidebar"] [data-testid="stSlider"] > div > div > div > div { background:white !important; }
-[data-testid="stSidebar"] .stButton > button {
-    background:white !important; color:#2563EB !important;
+
+/* ── 생성 버튼 — 텍스트 확실히 파란색 */
+[data-testid="stSidebar"] .stButton > button,
+[data-testid="stSidebar"] .stButton > button p,
+[data-testid="stSidebar"] .stButton > button span {
+    background:white !important;
+    color:#1D4ED8 !important;
     border:none !important; border-radius:12px !important;
     font-weight:800 !important; font-size:1rem !important;
     padding:0.7rem 1rem !important; width:100% !important;
     box-shadow:0 4px 16px rgba(0,0,0,0.15) !important; transition:all 0.2s !important;
 }
-[data-testid="stSidebar"] .stButton > button:hover {
-    background:#EEF2FF !important; transform:translateY(-1px) !important;
+[data-testid="stSidebar"] .stButton > button:hover,
+[data-testid="stSidebar"] .stButton > button:hover p,
+[data-testid="stSidebar"] .stButton > button:hover span {
+    background:#EEF2FF !important;
+    color:#1D4ED8 !important;
+    transform:translateY(-1px) !important;
     box-shadow:0 6px 20px rgba(0,0,0,0.2) !important;
 }
+
+/* ── 접기/펼치기 토글 */
 [data-testid="stSidebarCollapsedControl"] {
     background:#2563EB !important; border-radius:0 10px 10px 0 !important;
-    box-shadow:3px 0 12px rgba(37,99,235,0.3) !important;
+    box-shadow:3px 0 12px rgba(37,99,235,0.3) !important; overflow:hidden !important;
 }
 [data-testid="stSidebarCollapsedControl"]:hover { background:#1D4ED8 !important; }
 [data-testid="stSidebarCollapsedControl"] svg { fill:white !important; }
+/* keyboard_double_arrow 텍스트 완전 숨김 */
+[data-testid="stSidebarCollapsedControl"] span { font-size:0 !important; width:0 !important; overflow:hidden !important; }
 
 /* ── AI 모드 배지 */
 .ai-mode-bar {
@@ -493,6 +518,7 @@ function doCopy(t,id){{
 for k, v in {
     "topics": [], "generated": False,
     "type_key": "", "field": "", "keyword": "", "count": 3, "mode": "",
+    "trigger_regen": False, "trigger_reset": False,
 }.items():
     if k not in st.session_state:
         st.session_state[k] = v
@@ -553,30 +579,32 @@ with st.sidebar:
 
 
 # ─────────────────────────────────────────────
-# 생성 로직
+# 생성 로직 (트리거 플래그 패턴)
 # ─────────────────────────────────────────────
 type_key = "토론" if "토론" in selected_type else "토의"
 
-def do_generate(tk, fd, kw, cnt):
+def run_generation(tk, fd, kw, cnt):
+    """실제 생성 실행 — 반드시 컬럼/버튼 컨텍스트 밖에서 호출"""
     topics = []
     mode = "로컬 DB"
     if AI_AVAILABLE:
-        with st.spinner("🤖 Gemini AI가 주제를 생성하는 중..."):
-            topics = generate_with_gemini(tk, fd, kw, cnt)
-            mode = "Gemini AI"
+        topics = generate_with_gemini(tk, fd, kw, cnt)
+        mode = "Gemini AI"
         if not topics:
-            st.warning("⚠️ AI 생성 실패 — 로컬 DB로 대체합니다.")
             topics = generate_from_db(tk, fd, kw, cnt)
             mode = "로컬 DB (폴백)"
     else:
-        with st.spinner("주제를 불러오는 중..."):
-            time.sleep(0.6)
-            topics = generate_from_db(tk, fd, kw, cnt)
-            mode = "로컬 DB"
+        time.sleep(0.5)
+        topics = generate_from_db(tk, fd, kw, cnt)
+        mode = "로컬 DB"
     return topics, mode
 
+# ── 신규 생성 (사이드바 버튼)
 if generate_btn:
-    topics, mode = do_generate(type_key, selected_field, keyword_input, generate_count)
+    st.session_state.trigger_regen = False
+    st.session_state.trigger_reset = False
+    with st.spinner("🤖 Gemini AI가 주제를 생성하는 중..." if AI_AVAILABLE else "주제를 불러오는 중..."):
+        topics, mode = run_generation(type_key, selected_field, keyword_input, generate_count)
     st.session_state.topics = topics
     st.session_state.generated = True
     st.session_state.type_key = type_key
@@ -584,6 +612,27 @@ if generate_btn:
     st.session_state.keyword = keyword_input
     st.session_state.count = generate_count
     st.session_state.mode = mode
+
+# ── 다시 생성 트리거 처리 (컬럼 밖에서 실행)
+if st.session_state.trigger_regen:
+    st.session_state.trigger_regen = False
+    tk_ = st.session_state.type_key
+    fd_ = st.session_state.field
+    kw_ = st.session_state.keyword
+    cnt_ = st.session_state.count
+    with st.spinner("🔄 새로운 주제를 생성하는 중..." if AI_AVAILABLE else "주제를 다시 불러오는 중..."):
+        new_topics, new_mode = run_generation(tk_, fd_, kw_, cnt_)
+    if new_topics:
+        st.session_state.topics = new_topics
+        st.session_state.mode = new_mode
+    else:
+        st.error("주제 생성에 실패했습니다. 다시 시도해주세요.")
+
+# ── 초기화 트리거 처리
+if st.session_state.trigger_reset:
+    st.session_state.trigger_reset = False
+    st.session_state.generated = False
+    st.session_state.topics = []
 
 
 # ─────────────────────────────────────────────
@@ -626,18 +675,15 @@ else:
     </div>
     """, unsafe_allow_html=True)
 
-    # 액션 버튼
+    # 액션 버튼 — 트리거 플래그만 설정하고 rerun (생성 로직은 위 최상단에서 실행)
     col1, col2 = st.columns([1, 1])
     with col1:
         if st.button("🔄 다시 생성하기", use_container_width=True, key="regen"):
-            new_topics, new_mode = do_generate(tk, fd, kw, st.session_state.count)
-            st.session_state.topics = new_topics
-            st.session_state.mode = new_mode
+            st.session_state.trigger_regen = True
             st.rerun()
     with col2:
         if st.button("🗑️ 초기화", use_container_width=True, key="reset"):
-            st.session_state.generated = False
-            st.session_state.topics = []
+            st.session_state.trigger_reset = True
             st.rerun()
 
     st.markdown("")
